@@ -11,7 +11,7 @@ const obj = mongoose.Types.ObjectId;
 
 // 전체 목록 조회
 router.get('/',async (req,res)=>{
-    const datas = await Post.find();
+    const datas = await Post.find().sort({"createdAt":-1});
     res.json({
         data:datas
     });
@@ -62,15 +62,22 @@ router.put('/:_postId',async (req,res)=>{
             "message":"잘못된 ID값 입니다."
     })}else{
         const data = await Post.findById(postId);
-
+        const pw = req.body.password;
         if(!data){
             res.status(404).json({"message":"게시글이 존재하지 않습니다."});
         }else{
-            await Post.updateOne(data,{$set: req.body});
-            res.status(200).json({
-                Success:true,
-                "message":"게시글을 수정하였습니다."
-            });
+            if(data.password==pw){
+                await Post.updateOne(data,{$set: req.body});
+                res.status(200).json({
+                    Success:true,
+                    "message":"게시글을 수정하였습니다."
+                });
+            }else{
+                res.status(401).json({
+                    Success:false,
+                    "message":"비밀번호를 확인해주세요."
+                });
+            }
         }
     };
 });
@@ -84,15 +91,22 @@ router.delete('/:_postId',async (req,res)=>{
             "message":"잘못된 ID값 입니다."
     })}else{
         const data = await Post.findById(postId);
-
+        const pw = req.body.password;
         if(!data){
             res.status(404).json({"message":"게시글이 존재하지 않습니다."});
         }else{
-            await Post.deleteOne(data);
-            res.json({
-                Success:true,
-                "message":"게시글을 삭제하였습니다."
-            });
+            if(data.password==pw){
+                await Post.deleteOne(data);
+                res.json({
+                    Success:true,
+                    "message":"게시글을 삭제하였습니다."
+                });
+            }else{
+                res.status(401).json({
+                    Success:false,
+                    "message":"비밀번호를 확인해주세요."
+                });
+            }
         }
     };
 });

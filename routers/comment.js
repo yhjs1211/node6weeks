@@ -18,7 +18,7 @@ router.get('/',async (req,res)=>{
             "message":"잘못된 ID값 입니다."
     })}else{
         const post = await Post.findById(postId).catch(console.error);
-        const comments = await Comment.find({post_id:postId}).catch(console.error);
+        const comments = await Comment.find({post_id:postId}).sort({"createdAt":-1});
 
         if(!post){
             res.status(400).json({"message":"게시글이 존재하지않습니다."});
@@ -44,16 +44,32 @@ router.post('/',async (req,res)=>{
         if(!post)res.status(400).json({"message":"게시글이 존재하지않습니다."});
 
         const {author,password,content} = req.body;
-
-        await Comment.create({
-            author:author,
-            password:password,
-            post_id:postId,
-            content:content
-        }).catch(console.error);
-
-        res.status(201);
-        res.end();
+        if(content.length==0){
+            res.status(400).json({
+                Success:false,
+                "message":"댓글 내용을 입력해주세요."
+            });
+        }else if(author.length==0){
+            res.status(400).json({
+                Success:false,
+                "message":"작성자 이름을 입력해주세요."
+            });
+        }else if(password.length==0){
+            res.status(400).json({
+                Success:false,
+                "message":"비밀번호를 입력해주세요."
+            });
+        }else{
+            await Comment.create({
+                author:author,
+                password:password,
+                post_id:postId,
+                content:content
+            }).catch(console.error);
+    
+            res.status(201);
+            res.end();
+        };
     };
 });
 
@@ -72,11 +88,27 @@ router.put('/',async (req,res)=>{
                 "message":"존재하지 않는 댓글입니다."
             });
         }else{
-            await Comment.updateOne(data,{$set:req.body});
-            res.status(200).json({
-                success:true,
-                "message" : "Update Complete!"
-            });
+            const con = req.body.content;
+            const pw = req.body.password;
+            if(data.password==pw){
+                if(con.length!=0){
+                    await Comment.updateOne(data,{$set:req.body});
+                    res.status(200).json({
+                        success:true,
+                        "message" : "Update Complete!"
+                    });
+                }else{
+                    res.status(400).json({
+                        success:false,
+                        "message":"댓글 내용을 입력해주세요."
+                    });
+                }
+            }else{
+                res.status(401).json({
+                    Success:false,
+                    "message":"비밀번호를 확인해주세요."
+                });
+            }
         }
     };
 });
@@ -96,10 +128,18 @@ router.delete('/',async (req,res)=>{
                 "message":"존재하지 않는 댓글입니다."
             });
         }else{
-            await Comment.deleteOne(data);
-            res.status(204);
-            res.end();
-        }
+            const pw = req.body.password;
+            if(data.password==pw){
+                await Comment.deleteOne(data);
+                res.status(204);
+                res.end();
+            }else{
+                res.status(401).json({
+                    Success:false,
+                    "message":"비밀번호를 확인해주세요."
+                });
+            };
+        };
     };
 });
 

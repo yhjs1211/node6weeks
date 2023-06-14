@@ -16,7 +16,7 @@ const commentSchema = new mongoose.Schema({
     content:{
         type:String
     }
-},{versionKey:false});
+},{versionKey:false,timestamps:{createdAt:true,updatedAt:false}});
 
 const comment = mongoose.model('Comment',commentSchema);
 
