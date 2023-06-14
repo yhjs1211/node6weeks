@@ -2,6 +2,10 @@
 const postRouter = require('./routers/post.js');
 const commentRouter = require('./routers/comment.js');
 
+// DB import
+const dbConnect = require('./mongodb.js');
+dbConnect();
+
 // Server
 const express = require('express');
 const app = express();
