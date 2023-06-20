@@ -1,6 +1,5 @@
 // Router 연결
-const postRouter = require('./routers/post.js');
-const commentRouter = require('./routers/comment.js');
+const router = require('./routers/index.js');
 
 // DB import
 const dbConnect = require('./mongodb.js');
@@ -15,12 +14,23 @@ app.use(express.json());
 
 //메인 페이지 URL 안내
 app.get('/',(_,res)=>{
-    res.send('1. posts , 2. comments/postid');
+    res.status(200).json({
+        1:"GET /posts",
+        2:"POST /posts",
+        3:"PUT /posts:post_id",
+        4:"DELETE /posts:post_id",
+        5:"GET /comments?post_id=:postId",
+        6:"POST /comments?post_id=:postId",
+        7:"PUT /comments?comment_id=:commentId",
+        8:"DELETE /comments?comment_id=:commentId",
+        9:"POST /singup",
+        10:"POST /login"
+    });
     res.end();
 })
 
-app.use('/posts',postRouter);
-app.use('/comments',commentRouter);
+app.use('/',router);
+
 
 app.listen(8081,()=>{
     console.log(`8081 is running...`);

@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
+// JWT key
+const key = require('../key.js');
+
 // 스키마 import
 const Comment = require('../schemas/comment.js');
 const Post = require('../schemas/post.js');
@@ -9,32 +12,42 @@ const Post = require('../schemas/post.js');
 const mongoose = require('mongoose');
 const obj = mongoose.Types.ObjectId;
 
+// Cookie parser
+const cookie = require('cookie-parser');
+router.use(cookie());
+
+router.route('/')
 // 해당 게시물 전체 댓글 목록 조회
-router.get('/',async (req,res)=>{
+.get(async (req,res)=>{
     const postId = req.query.post_id;
     if(!obj.isValid(postId)){
         res.status(400).json({
             Success:false,
             "message":"잘못된 ID값 입니다."
     })}else{
-        const post = await Post.findById(postId).catch(console.error);
-        const comments = await Comment.find({post_id:postId}).sort({"createdAt":-1});
-
+        let post=null;
+        let comments=null;
+        try {
+            post = await Post.findById(postId);
+            comments = await Comment.find({post_id:postId}).sort("-createdAt");
+        } catch (e) {
+            console.error('Server Error ! =>'+e);
+        }
         if(!post){
             res.status(400).json({"message":"게시글이 존재하지않습니다."});
         }else{
-            if(comments.length==0){
+            if(c.length==0){
                 res.json({"message":"댓글이 없습니다."});
             }else{
-                res.status(200).json({"comments":comments});
+                res.status(200).json({"comments":c});
             }
         }
     };
-});
-
+})
 // 댓글 작성
-router.post('/',async (req,res)=>{
+.post(async (req,res)=>{
     const postId = req.query.post_id;
+    
     if(!obj.isValid(postId)){
         res.status(400).json({
             Success:false,
@@ -71,10 +84,9 @@ router.post('/',async (req,res)=>{
             res.end();
         };
     };
-});
-
+})
 // 댓글 수정
-router.put('/',async (req,res)=>{
+.put(async (req,res)=>{
     const commentId = req.query.comment_id;
     if(!obj.isValid(commentId)){
         res.status(400).json({
@@ -111,10 +123,9 @@ router.put('/',async (req,res)=>{
             }
         }
     };
-});
-
+})
 // 댓글 삭제
-router.delete('/',async (req,res)=>{
+.delete(async (req,res)=>{
     const commentId = req.query.comment_id;
     if(!obj.isValid(commentId)){
         res.status(400).json({
