@@ -19,7 +19,13 @@ const user = new mongoose.Schema({
 // DB상에 등록되지 않으나 가상의 필드를 생성
 user.virtual('readOnlyData')
     .get(function(){
-        return `id : ${this._id}, Name : ${this.name}, Nickname : ${this.nickname}`
+        const obj={
+            id:this._id,
+            name:this.name,
+            nickname:this.nickname
+        };
+
+        return  JSON.parse(JSON.stringify(obj));
     });
 
 module.exports = mongoose.model('user',user);

@@ -1,22 +1,22 @@
 const mongoose = require('mongoose');
 
 const commentSchema = new mongoose.Schema({
-    post_id:{
+    postId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Post'
     },
-    author:{
-        type:String,
-        required:true
+    userId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'user'
     },
-    password:{
+    nickname:{
         type:String,
         required:true
     },
     content:{
         type:String
     }
-},{versionKey:false,timestamps:{createdAt:true,updatedAt:false}});
+},{versionKey:false,timestamps:{createdAt:true,updatedAt:true}});
 
 const comment = mongoose.model('Comment',commentSchema);
 

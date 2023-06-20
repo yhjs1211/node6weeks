@@ -14,12 +14,13 @@ const obj = mongoose.Types.ObjectId;
 
 // Cookie parser
 const cookie = require('cookie-parser');
+const jwt = require('jsonwebtoken');
 router.use(cookie());
 
 router.route('/')
 // 해당 게시물 전체 댓글 목록 조회
 .get(async (req,res)=>{
-    const postId = req.query.post_id;
+    const postId = req.query['post-id'];
     if(!obj.isValid(postId)){
         res.status(400).json({
             Success:false,
@@ -29,24 +30,28 @@ router.route('/')
         let comments=null;
         try {
             post = await Post.findById(postId);
-            comments = await Comment.find({post_id:postId}).sort("-createdAt");
+            comments = await Comment.find({postId}).sort("-createdAt");
         } catch (e) {
             console.error('Server Error ! =>'+e);
+            res.status(500).json({
+                Success:false,
+                "message":"Server Error"
+            });
         }
         if(!post){
             res.status(400).json({"message":"게시글이 존재하지않습니다."});
         }else{
-            if(c.length==0){
+            if(comments.length===0){
                 res.json({"message":"댓글이 없습니다."});
             }else{
-                res.status(200).json({"comments":c});
+                res.status(200).json({"comments":comments});
             }
         }
     };
 })
 // 댓글 작성
 .post(async (req,res)=>{
-    const postId = req.query.post_id;
+    const postId = req.query['post-id'];
     
     if(!obj.isValid(postId)){
         res.status(400).json({
@@ -56,101 +61,172 @@ router.route('/')
         const post = await Post.findById(postId).catch(console.error);
         if(!post)res.status(400).json({"message":"게시글이 존재하지않습니다."});
 
-        const {author,password,content} = req.body;
-        if(content.length==0){
-            res.status(400).json({
-                Success:false,
-                "message":"댓글 내용을 입력해주세요."
-            });
-        }else if(author.length==0){
-            res.status(400).json({
-                Success:false,
-                "message":"작성자 이름을 입력해주세요."
-            });
-        }else if(password.length==0){
-            res.status(400).json({
-                Success:false,
-                "message":"비밀번호를 입력해주세요."
-            });
+        const accessToken = req.cookies['access-token'];
+        if(accessToken){
+            try {
+                const payload = await jwt.verify(accessToken, key);
+                const {nickname, id} = payload;
+                const content = req.body.content;
+                if(!content || content.length===0){
+                    res.status(403).json({
+                        Success:false,
+                        "errorMessage":"데이터 형식이 올바르지 않습니다."
+                    });
+                };
+                const contentReg = /^[\w\sㄱ-ㅎ가-힣\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]{5,}$/;
+                if(contentReg.test(content)){
+                    await Comment.create({
+                        postId,
+                        userId:id,
+                        nickname,
+                        content
+                    }).catch(console.error);
+            
+                    res.status(201);
+                    res.end();
+                }else{
+                    res.status(400).json({
+                        Success:false,
+                        "message":"최소 5자 이상 댓글을 입력해주세요."
+                    })
+                };
+            } catch (e) {
+                console.error(e);
+                res.status(403).json({
+                    Success:false,
+                    "errorMessage":"전달된 쿠키에서 오류가 발생하였습니다."
+                });
+            }
+                
         }else{
-            await Comment.create({
-                author:author,
-                password:password,
-                post_id:postId,
-                content:content
-            }).catch(console.error);
-    
-            res.status(201);
-            res.end();
+            res.status(403).json({
+                Success:false,
+                "errorMessage":"로그인이 필요한 기능입니다."
+            });
         };
     };
 })
 // 댓글 수정
 .put(async (req,res)=>{
-    const commentId = req.query.comment_id;
+    const commentId = req.query['comment-id'];
     if(!obj.isValid(commentId)){
         res.status(400).json({
             Success:false,
             "message":"잘못된 ID값 입니다."
     })}else{
-        const data = await Comment.findById(commentId).catch(console.error);
-        if(!data){
-            res.status(400).json({
-                success:false,
-                "message":"존재하지 않는 댓글입니다."
-            });
-        }else{
-            const con = req.body.content;
-            const pw = req.body.password;
-            if(data.password==pw){
-                if(con.length!=0){
-                    await Comment.updateOne(data,{$set:req.body});
-                    res.status(200).json({
-                        success:true,
-                        "message" : "Update Complete!"
+        const accessToken = req.cookies['access-token'];
+        if(accessToken){
+            try {
+                const payload = await jwt.verify(accessToken,key);
+                const nickname = payload.nickname;
+                const comment = await Comment.findById(commentId).catch(console.error);
+                if(!comment){
+                    res.status(404).json({
+                        Success:false,
+                        "errorMessage":"댓글이 존재하지 않습니다."
                     });
                 }else{
-                    res.status(400).json({
-                        success:false,
-                        "message":"댓글 내용을 입력해주세요."
-                    });
+                    if(comment.nickname===nickname){
+                        const content = req.body.content;
+                        const contentReg = /^[\w\sㄱ-ㅎ가-힣\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]{5,}$/;
+                        if(contentReg.test(content)){
+                            try {
+                                await Comment.updateOne(comment,{content:content});    
+                            } catch (e) {
+                                console.error(e);
+                                res.status(400).json({
+                                    Success:false,
+                                    "errormessage":"댓글 수정이 정상적으로 처리되지 않았습니다."
+                                });
+                            }
+                            res.status(200).json({
+                                Success:true,
+                                "message":"댓글을 수정하였습니다."
+                            });
+                        }else{
+                            res.status(412).json({
+                                Success:false,
+                                "errorMessage":"데이터 형식이 올바르지 않습니다."
+                            });    
+                        }
+                    }else{
+                        res.status(403).json({
+                            Success:false,
+                            "errorMessage":"댓글의 수정 권한이 존재하지 않습니다."
+                        });
+                    }
                 }
-            }else{
-                res.status(401).json({
+                
+            } catch (e) {
+                console.error(e);
+                res.status(403).json({
                     Success:false,
-                    "message":"비밀번호를 확인해주세요."
+                    "errorMessage":"전달된 쿠키에서 오류가 발생하였습니다."
                 });
             }
+        }else{
+            res.status(403).json({
+                Success:false,
+                "errorMessage":"로그인이 필요한 기능입니다."
+            });
         }
     };
 })
 // 댓글 삭제
 .delete(async (req,res)=>{
-    const commentId = req.query.comment_id;
+    const commentId = req.query['comment-id'];
     if(!obj.isValid(commentId)){
         res.status(400).json({
             Success:false,
             "message":"잘못된 ID값 입니다."
     })}else{
-        const data = await Comment.findById(commentId).catch(console.error);
-        if(!data){
-            res.status(400).json({
-                success:false,
-                "message":"존재하지 않는 댓글입니다."
-            });
-        }else{
-            const pw = req.body.password;
-            if(data.password==pw){
-                await Comment.deleteOne(data);
-                res.status(204);
-                res.end();
-            }else{
-                res.status(401).json({
+        const accessToken = req.cookies['access-token'];
+        if(accessToken){
+            try {
+                const payload = await jwt.verify(accessToken,key);
+                const nickname = payload.nickname;
+                try {
+                    const comment = await Comment.findById(commentId);
+                    if(comment.nickname===nickname){
+                        try {
+                            await Comment.deleteOne(comment).catch(console.error);    
+
+                            res.status(200).json({
+                                Success:true,
+                                "message":"댓글을 삭제하였습니다."
+                            });
+                        } catch (e) {
+                            res.status(400).json({
+                                Success:false,
+                                "errorMessage":"댓글 삭제가 정상적으로 처리되지 않았습니다."
+                            })
+                        };
+                    }else{
+                        res.status(403).json({
+                            Success:false,
+                            "errorMessage":"댓글 삭제 권한이 존재하지 않습니다."
+                        })
+                    };
+                } catch (e) {
+                    console.error(e);
+                    res.status(404).json({
+                        Success:false,
+                        "errorMessage":"댓글이 존재하지 않습니다."
+                    });    
+                };
+            } catch (e) {
+                console.error(e);
+                res.status(403).json({
                     Success:false,
-                    "message":"비밀번호를 확인해주세요."
+                    "errorMessage":"전달된 쿠키에서 오류가 발생하였습니다."
                 });
-            };
-        };
+            }
+        }else{
+            res.status(403).json({
+                Success:false,
+                "errorMessage":"로그인이 필요한 기능입니다."
+            });
+        }
     };
 });
 

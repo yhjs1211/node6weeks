@@ -14,16 +14,20 @@ const post = new mongoose.Schema({
         type: String,
         required: true
     },
-    password:{
-        type: String,
-        required: true
-    },
     content:{
         type:String
-    },
-    createdAt:{
-        type:String
     }
-},{versionKey:false});
+},{versionKey:false, timestamps:{createdAt:true,updatedAt:true}});
+
+// post.virtual('readOnlyData')
+//     .get(function(){
+//         const obj={
+//             title:this.title,
+//             content:this.content,
+//             createdAt:this.createdAt,
+//             updatedAt:this.updatedAt
+//         };
+//         return JSON.parse(JSON.stringify(obj));
+//     });
 
 module.exports = mongoose.model('Post',post);
