@@ -13,11 +13,24 @@ const commentSchema = new mongoose.Schema({
         type:String,
         required:true
     },
-    content:{
+    comment:{
         type:String
     }
 },{versionKey:false,timestamps:{createdAt:true,updatedAt:true}});
 
-const comment = mongoose.model('Comment',commentSchema);
+commentSchema.virtual('readOnlyData')
+    .get(function(){
+        const obj={
+            commentId:this._id,
+            userId:this.userId,
+            nickname:this.nickname,
+            comment:this.comment,
+            createdAt:this.createdAt,
+            updatedAt:this.updatedAt
+        }
+        return JSON.parse(JSON.stringify(obj));
+    })
 
+const comment = mongoose.model('Comment',commentSchema);
+    
 module.exports = comment;

@@ -5,10 +5,6 @@ const router = express.Router();
 const Post = require('../schemas/post.js');
 const Comment = require('../schemas/comment.js');
 
-// JWT && key
-const jwt = require('jsonwebtoken');
-const config = require('../config.js');
-
 // Auth Middleware
 const isAuth = require('../middleware/auth.js');
 
@@ -146,7 +142,8 @@ router.route('/:_postId')
                 res.status(404).json({"message":"게시글이 존재하지 않습니다."});
             }else{
                 if(data.nickname===nickname && data.userId.toHexString()===id){
-                    await Post.deleteOne(data);
+                    await Post.deleteOne(data)
+                        .then(Comment.deleteMany(postId));
                     res.status(200).json({
                         Success:true,
                         "message":"게시글을 삭제하였습니다."
