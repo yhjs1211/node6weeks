@@ -2,7 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 const User = require('../schemas/user.js');
-const key = require('../key.js');
+const config = require('../config.js');
 
 router.post('/signup',async (req, res, next) => {
     const {name,nickname,password,confirm} = req.body;
@@ -74,11 +74,13 @@ router.post('/login',async (req, res, next) => {
         if(data.length!=0){
             // Token
             const token = await jwt.sign({
-                id:data[0]._id.toHexString(),
-                nickname:nickname,
-                password:password
-                }, key,{expiresIn:'1h'});
-            res.cookie('access-token',token,{httpOnly:true});
+                id:data[0]._id.toHexString()}
+                , config.jwt.secret 
+                ,{expiresIn:'1h'}
+            );
+            
+            res.cookie('Authorization','Bearer '+token,{httpOnly:true});
+            
             res.status(200).json({
                 Success:true,
                 "message":"로그인 되었습니다."
@@ -97,7 +99,7 @@ router.post('/login',async (req, res, next) => {
 });
 
 router.get('/logout',async (req, res, next) => {
-    res.clearCookie('access-token');
+    res.clearCookie('Authorization');
     res.redirect('/');
 })
 

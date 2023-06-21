@@ -19,15 +19,17 @@ const post = new mongoose.Schema({
     }
 },{versionKey:false, timestamps:{createdAt:true,updatedAt:true}});
 
-// post.virtual('readOnlyData')
-//     .get(function(){
-//         const obj={
-//             title:this.title,
-//             content:this.content,
-//             createdAt:this.createdAt,
-//             updatedAt:this.updatedAt
-//         };
-//         return JSON.parse(JSON.stringify(obj));
-//     });
+post.virtual('readOnlyData')
+    .get(function(){
+        const obj={
+            postId:this._id,
+            userId:this.userId,
+            nickname:this.nickname,
+            title:this.title,
+            createdAt:this.createdAt,
+            updatedAt:this.updatedAt
+        };
+        return JSON.parse(JSON.stringify(obj));
+    });
 
 module.exports = mongoose.model('Post',post);

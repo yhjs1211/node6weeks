@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // JWT key
-const key = require('../key.js');
+
 
 // 스키마 import
 const Comment = require('../schemas/comment.js');

@@ -1,1 +1,2 @@
-node_modules
+node_modules/
+# .env 환경변수 파일도 무시해야하나 테스트를 위해 첨부

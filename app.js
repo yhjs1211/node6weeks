@@ -7,10 +7,13 @@ dbConnect();
 
 // Server
 const express = require('express');
+const config = require('./config.js');
+const cookie = require('cookie-parser');
 const app = express();
 
 // req Data json 변환
 app.use(express.json());
+app.use(cookie());
 
 //메인 페이지 URL 안내
 app.get('/',(_,res)=>{
@@ -32,7 +35,7 @@ app.get('/',(_,res)=>{
 app.use('/',router);
 
 
-app.listen(8081,()=>{
+app.listen(config.host.port,()=>{
     console.log(`8081 is running...`);
 })
 
